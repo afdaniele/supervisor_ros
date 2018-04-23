@@ -1,0 +1,5 @@
+string name
+int32 offset
+int32 length
+---
+string result

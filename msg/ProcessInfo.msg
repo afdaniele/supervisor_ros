@@ -1,0 +1,14 @@
+string name
+string group
+string description
+int32 start
+int32 stop
+int32 now
+int32 state
+string statename
+string spawnerr
+int32 exitstatus
+string logfile
+string stdout_logfile
+string stderr_logfile
+int32 pid

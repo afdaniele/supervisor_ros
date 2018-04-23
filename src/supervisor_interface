@@ -1,0 +1,230 @@
+#! /usr/bin/python
+
+import rospy
+import xmlrpclib
+from supervisor_ros.msg import *
+from supervisor_ros.srv import *
+
+
+class SupervisorROS:
+
+    def __init__(self, url='localhost', port=9001, resource='RPC2'):
+        self.server_url = "http://%s:%d/%s" % ( url, port, resource )
+        self.server = xmlrpclib.Server(self.server_url)
+
+        # Initialize node
+        rospy.init_node('supervisor_ros')
+
+        # Status and Control
+        self.getAPIVersion = rospy.Service('~getAPIVersion', GetAPIVersion, self.getAPIVersion)
+        self.getSupervisorVersion = rospy.Service('~getSupervisorVersion', GetSupervisorVersion, self.getSupervisorVersion)
+        self.getIdentification = rospy.Service('~getIdentification', GetIdentification, self.getIdentification)
+        self.getState = rospy.Service('~getState', GetState, self.getState)
+        self.getPID = rospy.Service('~getPID', GetPID, self.getPID)
+        self.readLog = rospy.Service('~readLog', ReadLog, self.readLog)
+        self.clearLog = rospy.Service('~clearLog', ClearLog, self.clearLog)
+        self.shutdown = rospy.Service('~shutdown', Shutdown, self.shutdown)
+        self.restart = rospy.Service('~restart', Restart, self.restart)
+        # Process Control
+        self.getProcessInfo = rospy.Service('~getProcessInfo', GetProcessInfo, self.getProcessInfo)
+        self.getAllProcessInfo = rospy.Service('~getAllProcessInfo', GetAllProcessInfo, self.getAllProcessInfo)
+        self.startProcess = rospy.Service('~startProcess', StartProcess, self.startProcess)
+        self.startAllProcesses = rospy.Service('~startAllProcesses', StartAllProcesses, self.startAllProcesses)
+        self.startProcessGroup = rospy.Service('~startProcessGroup', StartProcessGroup, self.startProcessGroup)
+        self.stopProcess = rospy.Service('~stopProcess', StopProcess, self.stopProcess)
+        self.stopProcessGroup = rospy.Service('~stopProcessGroup', StopProcessGroup, self.stopProcessGroup)
+        self.stopAllProcesses = rospy.Service('~stopAllProcesses', StopAllProcesses, self.stopAllProcesses)
+        self.signalProcess = rospy.Service('~signalProcess', SignalProcess, self.signalProcess)
+        self.signalProcessGroup = rospy.Service('~signalProcessGroup', SignalProcessGroup, self.signalProcessGroup)
+        self.signalAllProcesses = rospy.Service('~signalAllProcesses', SignalAllProcesses, self.signalAllProcesses)
+        self.sendProcessStdIn = rospy.Service('~sendProcessStdIn', SendProcessStdIn, self.sendProcessStdIn)
+        self.sendRemoteCommEvent = rospy.Service('~sendRemoteCommEvent', SendRemoteCommEvent, self.sendRemoteCommEvent)
+        self.reloadConfig = rospy.Service('~reloadConfig', ReloadConfig, self.reloadConfig)
+        self.addProcessGroup = rospy.Service('~addProcessGroup', AddProcessGroup, self.addProcessGroup)
+        self.removeProcessGroup = rospy.Service('~removeProcessGroup', RemoveProcessGroup, self.removeProcessGroup)
+        # Process Logging
+        self.readProcessStdOutLog = rospy.Service('~readProcessStdOutLog', ReadProcessStdOutLog, self.readProcessStdOutLog)
+        self.readProcessStdErrLog = rospy.Service('~readProcessStdErrLog', ReadProcessStdErrLog, self.readProcessStdErrLog)
+        self.tailProcessStdOutLog = rospy.Service('~tailProcessStdOutLog', TailProcessStdOutLog, self.tailProcessStdOutLog)
+        self.tailProcessStdErrLog = rospy.Service('~tailProcessStdErrLog', TailProcessStdErrLog, self.tailProcessStdErrLog)
+        self.clearProcessLogs = rospy.Service('~clearProcessLogs', ClearProcessLogs, self.clearProcessLogs)
+        self.clearAllProcessLogs = rospy.Service('~clearAllProcessLogs', ClearAllProcessLogs, self.clearAllProcessLogs)
+
+
+    def start(self):
+        # keep spinning and serve requests
+        rospy.spin()
+
+    # Status and Control
+    def getAPIVersion(self, _):
+    	return GetAPIVersionResponse( self.server.supervisor.getAPIVersion() )
+
+    def getSupervisorVersion(self, _):
+    	return GetSupervisorVersionResponse( self.server.supervisor.getSupervisorVersion() )
+
+    def getIdentification(self, _):
+    	return GetIdentificationResponse( self.server.supervisor.getIdentification() )
+
+    def getState(self, _):
+    	return GetStateResponse( **self.server.supervisor.getState() )
+
+    def getPID(self, _):
+    	return GetPIDResponse( self.server.supervisor.getPID() )
+
+    def readLog(self, request):
+        offset = request.offset
+        length = request.length
+    	return ReadLogResponse( self.server.supervisor.readLog(offset, length) )
+
+    def clearLog(self, _):
+    	return ClearLogResponse( self.server.supervisor.clearLog() )
+
+    def shutdown(self, _):
+    	return ShutdownResponse( self.server.supervisor.shutdown() )
+
+    def restart(self, _):
+    	return RestartResponse( self.server.supervisor.restart() )
+
+
+    # Process Control
+    def getProcessInfo(self, request):
+        name = request.name
+        return GetProcessInfoResponse(
+            ProcessInfo( **self.server.supervisor.getProcessInfo(name) )
+        )
+
+    def getAllProcessInfo(self, _):
+        return GetAllProcessInfoResponse(
+            [ ProcessInfo( **p ) for p in self.server.supervisor.getAllProcessInfo() ]
+        )
+
+    def startProcess(self, request):
+        name = request.name
+        wait = request.wait
+        return StartProcessResponse( self.server.supervisor.startProcess(name, wait) )
+
+    def startAllProcesses(self, request):
+        wait = request.wait
+        return StartAllProcessesResponse(
+            [ ProcessStatus( **p ) for p in self.server.supervisor.startAllProcesses(wait) ]
+        )
+
+    def startProcessGroup(self, request):
+        name = request.name
+        wait = request.wait
+        return StartProcessGroupResponse(
+            [ ProcessStatus( **p ) for p in self.server.supervisor.startProcessGroup(name, wait) ]
+        )
+
+    def stopProcess(self, request):
+        name = request.name
+        wait = request.wait
+        return StopProcessResponse( self.server.supervisor.stopProcess(name, wait) )
+
+    def stopProcessGroup(self, request):
+        name = request.name
+        wait = request.wait
+        return StopProcessGroupResponse(
+            [ ProcessStatus( **p ) for p in self.server.supervisor.stopProcessGroup(name, wait) ]
+        )
+
+    def stopAllProcesses(self, request):
+        wait = request.wait
+        return StopAllProcessesResponse(
+            [ ProcessStatus( **p ) for p in self.server.supervisor.stopAllProcesses(wait) ]
+        )
+
+    def signalProcess(self, request):
+        name = request.name
+        signal = request.signal
+    	return SignalProcessResponse( self.server.supervisor.signalProcess(name, signal) )
+
+    # TODO: to be tested
+    def signalProcessGroup(self, request):
+        name = request.name
+        signal = request.signal
+    	return SignalProcessGroupResponse(
+            [ ProcessStatus( **p ) for p in self.server.supervisor.signalProcessGroup(name, signal) ]
+        )
+
+    def signalAllProcesses(self, request):
+        signal = request.signal
+        return SignalAllProcessesResponse(
+            [ ProcessStatus( **p ) for p in self.server.supervisor.signalAllProcesses(signal) ]
+        )
+
+    # TODO: to be tested
+    def sendProcessStdIn(self, request):
+        name = request.name
+        chars = request.chars
+    	return SendProcessStdInResponse( self.server.supervisor.sendProcessStdIn(name, chars) )
+
+    # TODO: to be tested
+    def sendRemoteCommEvent(self, request):
+        type = request.type
+        data = request.data
+    	return SendRemoteCommEventResponse( self.server.supervisor.sendRemoteCommEvent(type, data) )
+
+    def reloadConfig(self, _):
+        res = self.server.supervisor.reloadConfig()[0]
+    	return ReloadConfigResponse( added=res[0], changed=res[1], removed=res[2] )
+
+    def addProcessGroup(self, request):
+        name = request.name
+    	return AddProcessGroupResponse( self.server.supervisor.addProcessGroup(name) )
+
+    def removeProcessGroup(self, request):
+        name = request.name
+    	return RemoveProcessGroupResponse( self.server.supervisor.removeProcessGroup(name) )
+
+
+    # Process Logging
+    def readProcessStdOutLog(self, request):
+        name = request.name
+        offset = request.offset
+        length = request.length
+    	return ReadProcessStdOutLogResponse( self.server.supervisor.readProcessStdoutLog(name, offset, length) )
+
+    def readProcessStdErrLog(self, request):
+        name = request.name
+        offset = request.offset
+        length = request.length
+    	return ReadProcessStdErrLogResponse( self.server.supervisor.readProcessStderrLog(name, offset, length) )
+
+    # TODO: to be tested
+    def tailProcessStdOutLog(self, request):
+        name = request.name
+        offset = request.offset
+        length = request.length
+        res = self.server.supervisor.tailProcessStdoutLog(name, offset, length)
+    	return TailProcessStdOutLogResponse(
+            bytes=res[0],
+            offset=res[1],
+            overflow=res[2]
+        )
+
+    # TODO: to be tested
+    def tailProcessStdErrLog(self, request):
+        name = request.name
+        offset = request.offset
+        length = request.length
+        res = self.server.supervisor.tailProcessStderrLog(name, offset, length)
+    	return TailProcessStdErrLogResponse(
+            bytes=res[0],
+            offset=res[1],
+            overflow=res[2]
+        )
+
+    def clearProcessLogs(self, request):
+        name = request.name
+    	return ClearProcessLogsResponse( self.server.supervisor.clearProcessLogs(name) )
+
+    def clearAllProcessLogs(self, _):
+    	return ClearAllProcessLogsResponse(
+            [ ProcessStatus( **p ) for p in self.server.supervisor.clearAllProcessLogs() ]
+        )
+
+
+if __name__ == '__main__':
+    s = SupervisorROS()
+    s.start()
